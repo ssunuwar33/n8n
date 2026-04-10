@@ -1,0 +1,421 @@
+{
+  "name": "Automated Job Application",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an assistant that helps maintain a spreadsheet of job applications.\n\nYou do NOT access emails on your own.\nAll email content is provided by me.\n\nYour task is to read the provided email carefully and determine whether it is a confirmation, update, or response related to a recently applied job application from a job marketplace (such as Indeed or similar platforms).\n\nIgnore promotional, marketing, or job recommendation emails that are NOT related to an actual job application.\n\nIf the email IS related to a job application, extract the following:\n- Date Applied\n- Job Title\n- Company Name\n\nAdditionally, return:\n- job_application: true\n\nIf the email is NOT related to a job application, return:\n- job_application: false\n\nONLY return JSON as defined in the schema.\n\nEmail to analyze:\n{{ $json.textPlain || $json.textHtml || $json.snippet }} ||{{ $json.subject }}\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        672,
+        -32
+      ],
+      "id": "02e31ea9-320f-46d9-92da-7402820091bf",
+      "name": "AI Agent",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"job_application\": { \"type\": \"boolean\" },\n    \"date_applied\": { \"type\": \"string\" },\n    \"job_title\": { \"type\": \"string\" },\n    \"company_name\": { \"type\": \"string\" }\n  },\n  \"required\": [\"job_application\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        288
+      ],
+      "id": "191b965a-492b-4c7e-a3e5-051e73cc723d",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a6eab743-5844-488e-8358-083dbeecdc70",
+              "name": "job_application",
+              "value": "={{ $json.output.job_application }}",
+              "type": "boolean"
+            },
+            {
+              "id": "25838454-2b1a-451a-9ef3-8650ee13ab8f",
+              "name": "date_applied",
+              "value": "={{new Date( $('Email Trigger (IMAP)').item.json.date).toISOString().split('T')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "a9aec449-bfc2-4614-ad5b-3779d7142bfc",
+              "name": "job_title",
+              "value": "={{ $json.output.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "b831cd7e-c347-4bbc-8a4b-0c5a6180c26c",
+              "name": "company_name",
+              "value": "={{ $json.output.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "2de24ef0-289d-4fa9-84cb-505f09988c43",
+              "name": "job_portal",
+              "value": "={{ $('Email Trigger (IMAP)').item.json.from.split(\" \")[0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        -32
+      ],
+      "id": "8ab7dd02-994f-4a34-8bd7-6f33368762a6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b1e4821e-38c2-4277-bb76-69e9dac7655a",
+              "leftValue": "={{ $json.job_application }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        -32
+      ],
+      "id": "6bd2c533-d81d-48d4-99e8-792d5bdb64d0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1BbWPD1JTOQzItUg6fOic04WzcC_stzxU7CXvhfdCZlQ",
+          "mode": "list",
+          "cachedResultName": "Job Applied",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BbWPD1JTOQzItUg6fOic04WzcC_stzxU7CXvhfdCZlQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BbWPD1JTOQzItUg6fOic04WzcC_stzxU7CXvhfdCZlQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date Applied": "={{ $('Edit Fields').item.json.date_applied }}",
+            "Job Title": "={{ $('Edit Fields').item.json.job_title }}",
+            "Company Name": "={{ $('Edit Fields').item.json.company_name }}",
+            "Wesbite/Portal": "={{ $('Edit Fields').item.json.job_portal }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date Applied",
+              "displayName": "Date Applied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Wesbite/Portal",
+              "displayName": "Wesbite/Portal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1472,
+        -96
+      ],
+      "id": "0595a379-4ea2-4890-b9b0-aba991353ae0",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7XLxBS8Sgx8Ula6n",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "trackLastMessageId": true
+        }
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        112
+      ],
+      "id": "eacd5749-5a7e-4716-913b-ce1b218a02cb",
+      "name": "Email Trigger (IMAP)",
+      "executeOnce": false,
+      "credentials": {
+        "imap": {
+          "id": "TCzir35VrqnToXae",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.0-flash-exp:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        336
+      ],
+      "id": "6921b158-5c1e-4174-9e79-00086ba620f3",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "FbeHUYDgQdVjyk19",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        656,
+        304
+      ],
+      "id": "da10ac6e-4334-4f03-ba93-c5f8259ab86b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KCVAVLro23og4baw",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        112
+      ],
+      "id": "523c69e1-0ec6-4bad-924a-ff5da81b8870",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        64
+      ],
+      "id": "bf6dee48-0244-4f09-8bdd-110aa2e39b6b",
+      "name": "Wait",
+      "webhookId": "89972f68-8d31-4f8b-bd3c-e3d25774d964"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a031098d-cdb3-4d3e-918e-88dc06a9bc80",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6aacbc14d4ac4feab7860ee374878b21959c57d15c6056f58a73dc0e3c97d499"
+  },
+  "id": "lXPfguh8EJZoSYu1",
+  "tags": []
+}
